@@ -165,7 +165,7 @@ handleTaskSuccess "$TASK"
 TASK="Prepare Knative Gateway (Kourier)"
 handleTaskOrStepStart "$TASK" "In progress"
 
-NODE_IP=`docker exec -it openfunction-control-plane sh -c "ip addr | grep eth0$ | grep -Eo 'inet ([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | tr -d '\n'"`
+NODE_IP=`docker exec -i openfunction-control-plane sh -c "ip addr | grep eth0$ | grep -Eo 'inet ([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | tr -d '\n'"`
 
 STEP="Patch external ip"
 handleTaskOrStepStart "$TASK" "$STEP" 
