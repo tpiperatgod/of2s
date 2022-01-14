@@ -40,5 +40,5 @@ async def publish():
 def main(request):
     logger.info("Running main function")
     asyncio.run(publish())
-    return {"result": "ok"}
+    return {}
 

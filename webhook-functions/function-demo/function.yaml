@@ -1,0 +1,56 @@
+apiVersion: core.openfunction.io/v1alpha2
+kind: Function
+metadata:
+  name: github-function
+spec:
+  version: "v1.0.0"
+  image: "zephyrfish/github-webhook-function:latest"
+  build:
+    builderCredentials:
+      name: push-secret
+    builder: openfunctiondev/go115-builder:v0.3.0
+    env:
+      FUNC_NAME: "Demo"
+    srcRepo:
+      url: "https://github.com/tpiperatgod/of2s.git"
+      sourceSubPath: "webhook-functions/function-demo"
+  serving:
+    runtime: OpenFuncAsync
+    openFuncAsync:
+      dapr:
+        inputs:
+          - name: subscriber
+            component: github-sub
+            type: pubsub
+            topic: default
+        annotations:
+          dapr.io/log-level: "debug"
+        components:
+          autoscaling-pubsub:
+            type: pubsub.natsstreaming
+            version: v1
+            metadata:
+              - name: natsURL
+                value: "nats://eventbus-default-stan-svc.argo-events:4222"
+              - name: natsStreamingClusterID
+                value: "stan"
+              - name: subscriptionType
+                value: "queue"
+              - name: durableSubscriptionName
+                value: "ImDurable"
+              - name: consumerID
+                value: "grp1"
+      keda:
+        scaledObject:
+          pollingInterval: 15
+          minReplicaCount: 0
+          maxReplicaCount: 10
+          cooldownPeriod: 30
+          triggers:
+            - type: stan
+              metadata:
+                natsServerMonitoringEndpoint: "eventbus-default-stan-svc.argo-events.svc.cluster.local:8222"
+                queueGroup: "grp1"
+                durableName: "ImDurable"
+                subject: "metrics"
+                lagThreshold: "10"

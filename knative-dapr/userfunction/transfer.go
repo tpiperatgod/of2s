@@ -1,0 +1,28 @@
+package userfunction
+
+import (
+	"encoding/json"
+	"log"
+
+	ofctx "main.go/offf-go/context"
+)
+
+func Sender(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
+	log.Print(ctx)
+	var greeting []byte
+	if in != nil {
+		log.Printf("http - Data: %s", in)
+		greeting = in
+	} else {
+		log.Print("http - Data: Received")
+		greeting, _ = json.Marshal(map[string]string{"message": "Hello"})
+	}
+
+	_, err := ctx.Send("target", greeting)
+	if err != nil {
+		log.Print(err.Error())
+		return ctx.ReturnOnInternalError(), err
+	}
+
+	return ctx.ReturnOnSuccess(), nil
+}
