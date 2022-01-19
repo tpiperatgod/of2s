@@ -1,14 +1,13 @@
-package userfunction
+package sender
 
 import (
 	"encoding/json"
 	"log"
 
-	ofctx "main.go/offf-go/context"
+	ofctx "github.com/OpenFunction/functions-framework-go/context"
 )
 
 func Sender(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
-	log.Print(ctx)
 	var greeting []byte
 	if in != nil {
 		log.Printf("http - Data: %s", in)
