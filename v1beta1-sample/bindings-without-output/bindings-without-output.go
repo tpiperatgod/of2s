@@ -1,8 +1,9 @@
 package bindings
 
 import (
-    ofctx "github.com/OpenFunction/functions-framework-go/context"
     "log"
+
+    ofctx "github.com/OpenFunction/functions-framework-go/context"
 )
 
 func BindingsNoOutput(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
