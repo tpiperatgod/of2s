@@ -5,7 +5,6 @@ import (
     "net/http"
 )
 
-func HelloWorld(w http.ResponseWriter, r *http.Request) error {
+func HelloWorld(w http.ResponseWriter, r *http.Request) {
     fmt.Fprint(w, "Hello, World!\n")
-    return nil
 }
