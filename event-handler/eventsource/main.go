@@ -57,7 +57,7 @@ func init() {
 	}
 }
 
-func EventSourceHandler(ctx ofctx.Context, in []byte) ofctx.Out {
+func EventSourceHandler(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
 	var err error
 	if config.EventBusOutputName != "" {
 		_, err = ctx.Send(config.EventBusOutputName, in)
@@ -70,5 +70,5 @@ func EventSourceHandler(ctx ofctx.Context, in []byte) ofctx.Out {
 		panic(err)
 	}
 
-	return ctx.ReturnOnSuccess()
+	return ctx.ReturnOnSuccess(), nil
 }
