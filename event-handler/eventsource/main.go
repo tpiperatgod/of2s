@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	ofctx "github.com/tpiperatgod/offf-go/context"
 	log "github.com/sirupsen/logrus"
 )
 
