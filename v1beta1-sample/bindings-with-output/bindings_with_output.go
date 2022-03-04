@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	ofctx "github.com/tpiperatgod/offf-go/context"
 )
 
 func BindingsOutput(ctx ofctx.Context, in []byte) (ofctx.Out, error) {

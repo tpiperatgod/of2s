@@ -1,9 +1,9 @@
 package plugin_custom
 
 import (
-	ofctx "github.com/OpenFunction/functions-framework-go/context"
-	"github.com/OpenFunction/functions-framework-go/plugin"
 	"github.com/fatih/structs"
+	ofctx "github.com/tpiperatgod/offf-go/context"
+	"github.com/tpiperatgod/offf-go/plugin"
 )
 
 const (
@@ -37,12 +37,12 @@ func (p *PluginCustom) Init() plugin.Plugin {
 	return New()
 }
 
-func (p *PluginCustom) ExecPreHook(ctx ofctx.Context, plugins map[string]plugin.Plugin) error {
+func (p *PluginCustom) ExecPreHook(ctx ofctx.RuntimeContext, plugins map[string]plugin.Plugin) error {
 	p.StateC++
 	return nil
 }
 
-func (p *PluginCustom) ExecPostHook(ctx ofctx.Context, plugins map[string]plugin.Plugin) error {
+func (p *PluginCustom) ExecPostHook(ctx ofctx.RuntimeContext, plugins map[string]plugin.Plugin) error {
 	return nil
 }
 

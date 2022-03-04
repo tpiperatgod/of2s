@@ -2,4 +2,4 @@ module example.com/bindings
 
 go 1.16
 
-require github.com/OpenFunction/functions-framework-go v0.1.2-0.20220124135506-cad5f9ea685d
+require github.com/tpiperatgod/offf-go v0.0.0-20220305064040-83645c94634a
