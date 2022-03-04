@@ -1,0 +1,18 @@
+apiVersion: core.openfunction.io/v1beta1
+kind: Function
+metadata:
+  name: eventsource-handler
+spec:
+  version: "v1.0.0"
+  image: "zephyrfish/eventsource-handler:latest"
+  imageCredentials:
+    name: push-secret
+  port: 8080
+  build:
+    builder: zephyrfish/builder-go:latest
+    env:
+      FUNC_NAME: "EventSourceHandler"
+      FUNC_CLEAR_SOURCE: "true"
+    srcRepo:
+      url: "https://github.com/tpiperatgod/of2s.git"
+      sourceSubPath: "event-handler/eventsource"
