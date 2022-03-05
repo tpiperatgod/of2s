@@ -4,7 +4,7 @@ metadata:
   name: trigger-builder
 spec:
   version: "v1.0.0"
-  image: "zephyrfish/trigger-handler:latest"
+  image: "openfunction/trigger-handler:latest"
   imageCredentials:
     name: push-secret
   port: 8080

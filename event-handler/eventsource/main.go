@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	ofctx "github.com/tpiperatgod/offf-go/context"
-	log "github.com/sirupsen/logrus"
+	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -34,10 +34,10 @@ func init() {
 	if len(encodedConfig) > 0 {
 		envConifgSpec, err := base64.StdEncoding.DecodeString(encodedConfig)
 		if err != nil {
-			log.Fatalf("failed to decode config string: %v", err)
+			klog.Fatalf("failed to decode config string: %v", err)
 		}
 		if err = json.Unmarshal(envConifgSpec, &config); err != nil {
-			log.Fatalf("failed to unmarshal config object: %v", err)
+			klog.Fatalf("failed to unmarshal config object: %v", err)
 		}
 	}
 
@@ -45,29 +45,25 @@ func init() {
 		config.Port = "5050"
 	}
 
-	switch config.LogLevel {
-	case "debug":
-		log.SetLevel(log.DebugLevel)
-	case "info":
-		log.SetLevel(log.InfoLevel)
-	case "error":
-		log.SetLevel(log.ErrorLevel)
-	default:
-		log.SetLevel(log.DebugLevel)
+	logLevel := klog.Level(1)
+	if config.LogLevel != "" {
+		logLevel.Set(config.LogLevel)
 	}
 }
 
 func EventSourceHandler(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
-	var err error
+
 	if config.EventBusOutputName != "" {
-		_, err = ctx.Send(config.EventBusOutputName, in)
+		klog.V(2).Info("eventsource - Send data to EventBus")
+		if _, err := ctx.Send(config.EventBusOutputName, in); err != nil {
+			klog.Exitf("failed to send data to eventbus: %v", err)
+		}
 	}
 	if config.SinkOutputName != "" {
-		_, err = ctx.Send(config.SinkOutputName, in)
-	}
-	if err != nil {
-		log.Error(err)
-		panic(err)
+		klog.V(2).Info("eventsource - Send data to Sink")
+		if _, err := ctx.Send(config.SinkOutputName, in); err != nil {
+			klog.Exitf("failed to send data to sink: %v", err)
+		}
 	}
 
 	return ctx.ReturnOnSuccess(), nil

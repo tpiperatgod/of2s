@@ -4,7 +4,7 @@ metadata:
   name: eventsource-handler
 spec:
   version: "v1.0.0"
-  image: "zephyrfish/eventsource-handler:latest"
+  image: "openfunction/eventsource-handler:latest"
   imageCredentials:
     name: push-secret
   port: 8080
