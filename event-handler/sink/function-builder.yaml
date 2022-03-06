@@ -1,0 +1,24 @@
+apiVersion: core.openfunction.io/v1beta1
+kind: Function
+metadata:
+  name: sink-builder
+spec:
+  version: "v1.0.0"
+  image: "openfunction/sink-sample:latest"
+  imageCredentials:
+    name: push-secret
+  port: 8080
+  build:
+    builder: zephyrfish/builder-go:latest
+    env:
+      FUNC_NAME: "HelloWorld"
+      FUNC_CLEAR_SOURCE: "true"
+    srcRepo:
+      url: "https://github.com/tpiperatgod/of2s.git"
+      sourceSubPath: "event-handler/sink"
+  serving:
+    runtime: "knative"
+    template:
+      containers:
+        - name: function
+          imagePullPolicy: Always
