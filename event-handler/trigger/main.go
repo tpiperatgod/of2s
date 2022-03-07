@@ -11,6 +11,7 @@ import (
 	"time"
 
 	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/dapr/go-sdk/service/common"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
@@ -43,12 +44,17 @@ type Subscriber struct {
 	DLEventBusOutputName string `json:"dlEventBusOutputName,omitempty"`
 }
 
+type innerEvent struct {
+	topicEvent *common.TopicEvent
+	data       []byte
+}
+
 type TriggerMgr struct {
 	// key: condition, value: *Subscriber
 	ConditionSubscriberMap *sync.Map
 	// key: topic, value: *InputStatus
 	TopicInputMap *sync.Map
-	TopicEventMap map[string]chan *common.TopicEvent
+	TopicEventMap map[string]chan *innerEvent
 	CelEnv        *cel.Env
 }
 
@@ -104,20 +110,20 @@ func init() {
 
 		// The reset here is equal to the initialization
 		triggerManager.reset(topic, in.Name)
-		triggerManager.TopicEventMap[topic] = make(chan *common.TopicEvent)
+		triggerManager.TopicEventMap[topic] = make(chan *innerEvent)
 		inputVars = append(inputVars, decls.NewVar(in.Name, decls.Bool))
 
 		// We create a goroutine for each topic (input).
 		// This unique goroutine will be awakened by the channel corresponding to the topic.
 		mainWaitGroup.Add(1)
-		go func(ch <-chan *common.TopicEvent) {
+		go func(ch <-chan *innerEvent) {
 			defer mainWaitGroup.Done()
 
 			// Set a timer ticker to reset the state of the InputStatus corresponding to the topic
 			// when no new events are received after the ResetTimeInterval.
 			ticker := time.NewTicker(ResetTimeInterval * time.Second)
 			defer ticker.Stop()
-			event := &common.TopicEvent{}
+			event := &innerEvent{}
 			for {
 				select {
 				// When listening for an event (*common.TopicEvent) in the specified channel.
@@ -125,12 +131,12 @@ func init() {
 					// Reset the timer because we received a new message.
 					ticker.Reset(ResetTimeInterval * time.Second)
 					// Update the value of the corresponding topic in triggerManager.TopicInputMap.
-					triggerManager.TopicInputMap.Store(topic, &InputStatus{LastMsgTime: time.Now().Unix(), LastEvent: event, Status: true, Name: in.Name})
+					triggerManager.TopicInputMap.Store(topic, &InputStatus{LastMsgTime: time.Now().Unix(), LastEvent: event.topicEvent, Status: true, Name: in.Name})
 					// Check if a condition has been satisfied at this point.
 					// If the condition is matched, the corresponding subscriber is obtained and a list (matchSubs) of subscribers matching the above condition is returned.
 					if matchSubs := triggerManager.execCondition(); matchSubs != nil {
 						// Send event to subscribers according to the configuration in matchSubs.
-						triggerManager.execTrigger(event, matchSubs)
+						triggerManager.execTrigger(event.topicEvent, matchSubs, event.data)
 					}
 				// When the timer ticker ends
 				case <-ticker.C:
@@ -156,23 +162,26 @@ func init() {
 func TriggerHandler(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
 	funcContext = ctx
 	printEventInfo(ctx.GetTopicEvent())
-	triggerManager.TopicEventMap[ctx.GetTopicEvent().Topic] <- ctx.GetTopicEvent()
+	ie := &innerEvent{}
+	ie.topicEvent = ctx.GetTopicEvent()
+	ie.data = in
+	triggerManager.TopicEventMap[ctx.GetTopicEvent().Topic] <- ie
 	return ctx.ReturnOnSuccess(), nil
 }
 
-func trigger(ctx context.Context, e *common.TopicEvent, sub *Subscriber) {
+func trigger(ctx context.Context, e *common.TopicEvent, sub *Subscriber, in []byte) {
 
 	if sub.SinkOutputName != "" {
 		// send the input data to sink
 		klog.V(2).Infof("trigger - Send to Sink - ID: %s", e.ID)
-		response, err := funcContext.Send(sub.SinkOutputName, convertUserDataToBytes(e.Data))
+		response, err := funcContext.Send(sub.SinkOutputName, in)
 		if err != nil {
 			klog.Exitf("failed to send data to sink: %v", err)
 		}
 		klog.V(2).Infof("trigger - Response - Data: %s", response)
 	}
 	if sub.EventBusOutputName != "" {
-		_, err := funcContext.Send(sub.EventBusOutputName, convertUserDataToBytes(e.Data))
+		_, err := funcContext.Send(sub.EventBusOutputName, in)
 		if err != nil {
 			klog.Exitf("failed to send data to eventbus: %v", err)
 		}
@@ -212,7 +221,7 @@ func isTrue(val ref.Val) bool {
 
 func printEventInfo(e *common.TopicEvent) {
 	klog.V(2).Infoln("---------- ** Events Information ** ----------")
-	klog.V(2).Infof("ID: %s\nTopic: %s\nType: %s\nSource: %s\nSubject: %s\n", e.ID, e.Topic, e.Type, e.Source, e.Subject)
+	klog.V(2).Infof("\n\tID: %s\n\tTopic: %s\n\tType: %s\n\tSource: %s\n\tSubject: %s\n", e.ID, e.Topic, e.Type, e.Source, e.Subject)
 	klog.V(2).Infoln("----------------------------------------------")
 }
 
@@ -248,16 +257,16 @@ func (t *TriggerMgr) execCondition() []*Subscriber {
 	return matchSubscribers
 }
 
-func (t *TriggerMgr) execTrigger(event *common.TopicEvent, subscribers []*Subscriber) {
+func (t *TriggerMgr) execTrigger(event *common.TopicEvent, subscribers []*Subscriber, in []byte) {
 	ctx := context.Background()
 	for _, subscriber := range subscribers {
-		trigger(ctx, event, subscriber)
+		trigger(ctx, event, subscriber, in)
 	}
 }
 
 func (t *TriggerMgr) init() {
 	t.TopicInputMap = &sync.Map{}
-	t.TopicEventMap = map[string]chan *common.TopicEvent{}
+	t.TopicEventMap = map[string]chan *innerEvent{}
 	t.ConditionSubscriberMap = &sync.Map{}
 }
 
@@ -265,16 +274,25 @@ func (i *Input) genTopic() string {
 	return fmt.Sprintf(TopicNameTmpl, i.Namespace, i.EventSource, i.Event)
 }
 
-func convertUserDataToBytes(data interface{}) []byte {
-	if d, ok := data.([]byte); ok {
-		return d
+func convertData(data interface{}) []byte {
+	ce := &cloudevents.Event{}
+	if data != nil {
+		switch data := data.(type) {
+		case []byte:
+			if err := json.Unmarshal(data, ce); err != nil {
+				return data
+			} else {
+				return ce.Data()
+			}
+		case string:
+			return []byte(data)
+		default:
+			if dataBytes, err := json.Marshal(data); err != nil {
+				return nil
+			} else {
+				return dataBytes
+			}
+		}
 	}
-	if d, ok := data.(string); ok {
-		return []byte(d)
-	}
-	if d, err := json.Marshal(data); err != nil {
-		return nil
-	} else {
-		return d
-	}
+	return nil
 }
