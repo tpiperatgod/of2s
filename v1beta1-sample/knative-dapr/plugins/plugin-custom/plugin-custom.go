@@ -1,11 +1,9 @@
 package plugin_custom
 
 import (
-	"time"
-
+	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	"github.com/OpenFunction/functions-framework-go/plugin"
 	"github.com/fatih/structs"
-	ofctx "github.com/tpiperatgod/offf-go/context"
-	"github.com/tpiperatgod/offf-go/plugin"
 )
 
 const (
@@ -41,7 +39,6 @@ func (p *PluginCustom) Init() plugin.Plugin {
 
 func (p *PluginCustom) ExecPreHook(ctx ofctx.RuntimeContext, plugins map[string]plugin.Plugin) error {
 	p.StateC++
-	time.Sleep(5 * time.Second)
 	return nil
 }
 
