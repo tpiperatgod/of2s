@@ -2,24 +2,24 @@ package bindings
 
 import (
 	"encoding/json"
-	"log"
 
-	ofctx "github.com/tpiperatgod/offf-go/context"
+	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	"k8s.io/klog/v2"
 )
 
 func BindingsOutput(ctx ofctx.Context, in []byte) (ofctx.Out, error) {
 	var greeting []byte
 	if in != nil {
-		log.Printf("binding - Data: %s", in)
+		klog.Infof("binding - Data: %s", in)
 		greeting = in
 	} else {
-		log.Print("binding - Data: Received")
+		klog.Infof("binding - Data: Received")
 		greeting, _ = json.Marshal(map[string]string{"message": "Hello"})
 	}
 
-	_, err := ctx.Send("target", greeting)
+	_, err := ctx.Send("sample", greeting)
 	if err != nil {
-		log.Printf("Error: %v\n", err)
+		klog.Infof("Error: %v\n", err)
 		return ctx.ReturnOnInternalError(), err
 	}
 	return ctx.ReturnOnSuccess(), nil

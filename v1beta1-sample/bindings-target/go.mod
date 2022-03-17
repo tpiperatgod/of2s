@@ -2,4 +2,7 @@ module example.com/target
 
 go 1.16
 
-require github.com/OpenFunction/functions-framework-go v0.1.2-0.20220304081728-777cba14f227
+require (
+	github.com/OpenFunction/functions-framework-go v0.2.1
+	k8s.io/klog/v2 v2.30.0
+)

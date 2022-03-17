@@ -3,6 +3,6 @@ module example.com/bindings
 go 1.16
 
 require (
-	github.com/fatih/structs v1.1.0
-	github.com/tpiperatgod/offf-go v0.0.0-20220305064040-83645c94634a
+	github.com/OpenFunction/functions-framework-go v0.2.1
+	k8s.io/klog/v2 v2.30.0
 )

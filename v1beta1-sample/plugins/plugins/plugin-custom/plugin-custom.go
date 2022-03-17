@@ -1,9 +1,9 @@
 package plugin_custom
 
 import (
+	ofctx "github.com/OpenFunction/functions-framework-go/context"
+	"github.com/OpenFunction/functions-framework-go/plugin"
 	"github.com/fatih/structs"
-	ofctx "github.com/tpiperatgod/offf-go/context"
-	"github.com/tpiperatgod/offf-go/plugin"
 )
 
 const (
