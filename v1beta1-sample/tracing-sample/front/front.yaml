@@ -1,0 +1,47 @@
+apiVersion: core.openfunction.io/v1beta1
+kind: Function
+metadata:
+  name: tracing-front
+spec:
+  version: "v2.0.0"
+  image: "openfunctiondev/sample-tracing-front:latest"
+  imageCredentials:
+    name: push-secret
+  port: 8080 # default to 8080
+  build:
+    builder: openfunction/builder-go:latest
+    env:
+      FUNC_NAME: "ForwardToKafka"
+      FUNC_CLEAR_SOURCE: "true"
+    srcRepo:
+      url: "https://github.com/tpiperatgod/of2s.git"
+      sourceSubPath: "v1beta1-sample/tracing-sample/front"
+      revision: "main"
+  serving:
+    scaleOptions:
+      minReplicas: 0
+      maxReplicas: 5
+    runtime: knative
+    outputs:
+      - name: target
+        component: kafka-server
+        operation: "create"
+    bindings:
+      kafka-server:
+        type: bindings.kafka
+        version: v1
+        metadata:
+          - name: brokers
+            value: "kafka-server-kafka-brokers:9092"
+          - name: authRequired
+            value: "false"
+          - name: publishTopic
+            value: "tracing"
+          - name: topics
+            value: "tracing"
+          - name: consumerGroup
+            value: "tracing-front"
+    template:
+      containers:
+        - name: function
+          imagePullPolicy: Always

@@ -1,0 +1,58 @@
+apiVersion: core.openfunction.io/v1beta1
+kind: Function
+metadata:
+  name: tracing-backend
+spec:
+  version: "v2.0.0"
+  image: openfunctiondev/sample-tracing-backend:latest
+  imageCredentials:
+    name: push-secret
+  build:
+    builder: openfunction/builder-go:latest
+    env:
+      FUNC_NAME: "HandleKafkaInput"
+      FUNC_CLEAR_SOURCE: "true"
+    srcRepo:
+      url: "https://github.com/tpiperatgod/of2s.git"
+      sourceSubPath: "v1beta1-sample/tracing-sample/backend"
+      revision: "main"
+  serving:
+    runtime: async
+    scaleOptions:
+      minReplicas: 0
+      maxReplicas: 10
+      keda:
+        scaledObject:
+          pollingInterval: 15
+          # minReplicaCount: 0
+          # maxReplicaCount: 10
+          cooldownPeriod: 45
+    triggers:
+      - type: kafka
+        metadata:
+          topic: tracing
+          bootstrapServers: kafka-server-kafka-brokers.default.svc:9092
+          consumerGroup: kafka-input
+          lagThreshold: "20"
+    inputs:
+      - name: greeting
+        component: kafka-server
+    bindings:
+      kafka-server:
+        type: bindings.kafka
+        version: v1
+        metadata:
+          - name: brokers
+            value: "kafka-server-kafka-brokers:9092"
+          - name: topics
+            value: "tracing"
+          - name: consumerGroup
+            value: "kafka-input"
+          - name: publishTopic
+            value: "tracing"
+          - name: authRequired
+            value: "false"
+    template:
+      containers:
+        - name: function
+          imagePullPolicy: Always
